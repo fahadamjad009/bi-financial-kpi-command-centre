@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Data ? raw filings can be 100s of MB, processed parquets re-derivable
+data/raw/
+data/processed/
+!data/processed/.gitkeep
+!data/raw/.gitkeep
+
+# Power BI
+pbi/.cache/
+*.pbix.lock
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local
+*.key
+
+# Logs
+*.log
+logs/
+
+# Notebooks scratch
+.ipynb_checkpoints/
