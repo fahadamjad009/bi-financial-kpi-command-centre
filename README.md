@@ -9,7 +9,9 @@ Executive-grade financial intelligence dashboard analysing US large-cap bank qua
 JPMorgan Chase (JPM), Bank of America (BAC), Wells Fargo (WFC), Citigroup (C), Goldman Sachs (GS), Morgan Stanley (MS) — 5 years quarterly, sourced from 10-K and 10-Q SEC filings.
 
 ## Architecture
-SEC EDGAR XBRL  →  Python ETL (edgartools)  →  Parquet  →  Power BI Star Schema  →  DAX  →  Visuals
+~~~text
+SEC EDGAR XBRL  ->  Python ETL (edgartools)  ->  Parquet  ->  Power BI Star Schema  ->  DAX  ->  Visuals
+~~~
 
 ## Tech Stack
 - **BI**: Power BI Desktop, DAX (time intelligence, ranking, iterators, variance)
@@ -25,23 +27,25 @@ SEC EDGAR XBRL  →  Python ETL (edgartools)  →  Parquet  →  Power BI Star S
 - Context transition (CALCULATE wrapping row context)
 
 ## Project Structure
+~~~text
 .
-├── data/
-│   ├── raw/edgar/       # Raw XBRL filings (gitignored)
-│   └── processed/       # Star-schema parquets (gitignored, re-derivable)
-├── src/                 # Python ETL pipeline
-├── pbi/                 # Power BI workbook (.pbix)
-├── notebooks/           # Exploration / data profiling
-├── tests/               # pytest data quality + transformation tests
-└── docs/screenshots/    # Dashboard screenshots
+|-- data/
+|   |-- raw/edgar/       # Raw XBRL filings (gitignored)
+|   `-- processed/       # Star-schema parquets (gitignored, re-derivable)
+|-- src/                 # Python ETL pipeline
+|-- pbi/                 # Power BI workbook (.pbix)
+|-- notebooks/           # Exploration / data profiling
+|-- tests/               # pytest data quality + transformation tests
+`-- docs/screenshots/    # Dashboard screenshots
+~~~
 
 ## Setup
-```powershell
+~~~powershell
 D:\Python311\python.exe -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python src/ingest_edgar.py
-```
+~~~
 
 ## Status
 - [x] Phase 1 — Project scaffold
