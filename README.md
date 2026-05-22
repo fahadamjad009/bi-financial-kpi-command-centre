@@ -1,12 +1,18 @@
-﻿# Financial KPI Command Centre
+# Financial KPI Command Centre
 
 Executive-grade financial intelligence dashboard analysing US large-cap bank quarterly performance. Built on SEC EDGAR XBRL filings with Power BI, demonstrating star-schema data modelling, DAX time intelligence, variance analysis, and Python-automated data ingestion.
 
 ## Live Demo
-*Phase 3 â€” Power BI Service publish planned.*
+*Phase 3 — Power BI Service publish planned.*
 
 ## Companies Covered
-JPMorgan Chase (JPM), Bank of America (BAC), Wells Fargo (WFC), Citigroup (C), Goldman Sachs (GS), Morgan Stanley (MS) â€” 5 years quarterly, sourced from 10-K and 10-Q SEC filings.
+JPMorgan Chase (JPM), Bank of America (BAC), Wells Fargo (WFC), Citigroup (C), Goldman Sachs (GS), Morgan Stanley (MS) — 5 years quarterly, sourced from 10-K and 10-Q SEC filings.
+
+## Data Pipeline
+- **393 SEC filings ingested** (10-K + 10-Q, 2018-2026) via `edgartools`
+- **19,910 fact rows** in long-format star schema after dedup
+- **2,260 unique financial concepts** across income / balance sheet / cash flow
+- Output: 470 KB of parquet, Power BI native load
 
 ## Architecture
 ~~~text
@@ -15,7 +21,7 @@ SEC EDGAR XBRL  ->  Python ETL (edgartools)  ->  Parquet  ->  Power BI Star Sche
 
 ## Tech Stack
 - **BI**: Power BI Desktop, DAX (time intelligence, ranking, iterators, variance)
-- **Data**: Python 3.11, edgartools, pandas, pyarrow
+- **Data**: Python 3.11, edgartools 5.x, pandas 3.x, pyarrow
 - **Source**: SEC EDGAR REST API (free, unlimited, regulatory-grade)
 
 ## DAX Patterns Demonstrated
@@ -33,6 +39,9 @@ SEC EDGAR XBRL  ->  Python ETL (edgartools)  ->  Parquet  ->  Power BI Star Sche
 |   |-- raw/edgar/       # Raw XBRL filings (gitignored)
 |   `-- processed/       # Star-schema parquets (gitignored, re-derivable)
 |-- src/                 # Python ETL pipeline
+|   |-- config.py        # Constants (tickers, paths, identity)
+|   |-- ingest_edgar.py  # Fetch + save raw filings
+|   `-- transform.py     # Wide -> long + star schema
 |-- pbi/                 # Power BI workbook (.pbix)
 |-- notebooks/           # Exploration / data profiling
 |-- tests/               # pytest data quality + transformation tests
@@ -44,18 +53,22 @@ SEC EDGAR XBRL  ->  Python ETL (edgartools)  ->  Parquet  ->  Power BI Star Sche
 D:\Python311\python.exe -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+
+# Pull all filings (~10-15 min)
 python src/ingest_edgar.py
+
+# Transform raw -> star schema
+python src/transform.py
 ~~~
 
 ## Status
-- [x] Phase 1 â€” Project scaffold
-- [ ] Phase 1 â€” SEC EDGAR data pipeline
-- [ ] Phase 2 â€” Power BI star schema + DAX
-- [ ] Phase 2 â€” Visuals + drill-throughs
-- [ ] Phase 3 â€” README polish, screenshots, GitHub
-- [ ] Phase 3 â€” Power BI Service publish
+- [x] Phase 1 — Project scaffold
+- [x] Phase 1 — SEC EDGAR data pipeline
+- [ ] Phase 2 — Power BI star schema + DAX
+- [ ] Phase 2 — Visuals + drill-throughs
+- [ ] Phase 3 — README polish, screenshots, GitHub
+- [ ] Phase 3 — Power BI Service publish
 
 ---
 
-Built by Fahad Amjad â€” part of a portfolio of deployed analytics platforms. See also: customer-churn-ml-benchmark, asx-abs-early-warning, fintech-fraud-detection-platform, mining-operations-analytics-platform.
-
+Built by Fahad Amjad — part of a portfolio of deployed analytics platforms. See also: customer-churn-ml-benchmark, asx-abs-early-warning, fintech-fraud-detection-platform, mining-operations-analytics-platform.
