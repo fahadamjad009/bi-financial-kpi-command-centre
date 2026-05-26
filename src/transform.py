@@ -133,6 +133,9 @@ def build_fact():
         )
         .reset_index(drop=True)
     )
+    # Composite key for star schema join (same concept code can span multiple statements)
+    # Lowercase normalization to match Power BI case-insensitive string comparison
+    fact["concept_key"] = (fact["concept"] + "|" + fact["statement"]).str.lower()
     print(f"  Post-dedupe rows: {len(fact):,}")
     return fact
 
@@ -147,11 +150,11 @@ def build_dim_company(fact):
 
 
 def build_dim_concept(fact):
-    cols = ["concept", "label", "standard_concept", "statement",
+    cols = ["concept_key", "concept", "label", "standard_concept", "statement",
             "parent_concept", "level", "balance", "weight"]
     dim = (
         fact[cols]
-        .drop_duplicates(subset=["concept", "statement", "label"])
+        .drop_duplicates(subset=["concept_key"])
         .reset_index(drop=True)
     )
     return dim

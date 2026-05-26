@@ -1,0 +1,13 @@
+﻿{
+  "name": "BankCommandCentre",
+  "background": "#0E1626",
+  "foreground": "#E8ECF1",
+  "tableAccent": "#00B8D9",
+  "dataColors": ["#E53935", "#00897B", "#FDD835", "#1E88E5", "#8E24AA", "#FB8C00"],
+  "good": "#4CAF50",
+  "bad": "#F44336",
+  "neutral": "#FF9800",
+  "maximum": "#00B8D9",
+  "center": "#888888",
+  "minimum": "#0E1626"
+}

@@ -1,0 +1,194 @@
+// =============================================================================
+// US Bank Financial KPI Command Centre
+// DAX Measures Library (TMDL format)
+// =============================================================================
+// Project: bi-financial-kpi-command-centre
+// Model:   Star schema - fact_financials + dim_company / dim_concept / dim_date
+// Author:  Fahad Amjad
+//
+// How to use:
+//   1. Open .pbix in Power BI Desktop
+//   2. Switch to TMDL view (5th sidebar icon)
+//   3. Open the fact_financials table block
+//   4. Paste any measure below into the table definition
+//   5. Click Apply
+//
+// Alternative (per measure):
+//   1. Report view -> right-click fact_financials in Data pane -> New measure
+//   2. Copy the DAX (between the triple-quote markers) into the formula bar
+//   3. Press Enter to commit
+// =============================================================================
+
+table fact_financials
+
+    // -------------------------------------------------------------------------
+    // KPI 1: Net Income FY (Annual)
+    // -------------------------------------------------------------------------
+    // Filtered to us-gaap_NetIncomeLoss in INCOME STATEMENT only
+    // (excludes cashflow statement duplicate that would double-count)
+    // Excludes dimensional breakdowns (segment-level rows)
+    // -------------------------------------------------------------------------
+    measure 'Net Income FY' = ```
+            CALCULATE(
+                SUM(fact_financials[value]),
+                dim_concept[concept] = "us-gaap_NetIncomeLoss",
+                dim_concept[statement] = "income",
+                fact_financials[period_type] = "FY",
+                fact_financials[is_breakdown] = FALSE
+            )
+            ```
+        formatString: #,0,,"bn"
+        displayFolder: KPIs - Income Statement
+
+    // -------------------------------------------------------------------------
+    // KPI 2: Net Income FY LY (Prior Year)
+    // -------------------------------------------------------------------------
+    // Uses SAMEPERIODLASTYEAR for time intelligence
+    // Requires dim_date to be marked as date table
+    // -------------------------------------------------------------------------
+    measure 'Net Income FY LY' = ```
+            CALCULATE(
+                [Net Income FY],
+                SAMEPERIODLASTYEAR(dim_date[date])
+            )
+            ```
+        formatString: #,0,,"bn"
+        displayFolder: KPIs - Income Statement
+
+    // -------------------------------------------------------------------------
+    // KPI 3: Net Income YoY % (Growth)
+    // -------------------------------------------------------------------------
+    // Derived measure - automatically updates when [Net Income FY] changes
+    // DIVIDE handles divide-by-zero (returns BLANK instead of error)
+    // -------------------------------------------------------------------------
+    measure 'Net Income YoY %' = ```
+            VAR Current = [Net Income FY]
+            VAR Prior = [Net Income FY LY]
+            RETURN
+                DIVIDE(Current - Prior, Prior)
+            ```
+        formatString: 0.0%;-0.0%;--
+        displayFolder: KPIs - Income Statement
+
+    // -------------------------------------------------------------------------
+    // KPI 4: Total Assets (Semi-Additive)
+    // -------------------------------------------------------------------------
+    // Balance sheet snapshots must NOT be summed across periods
+    // Uses MAX(fact_financials[period_end_date]) for data-aware latest date
+    // (avoids blank values when filter context extends past actual data range)
+    // -------------------------------------------------------------------------
+    measure 'Total Assets' = ```
+            VAR LastDataDate =
+                CALCULATE(
+                    MAX(fact_financials[period_end_date]),
+                    dim_concept[concept] = "us-gaap_Assets",
+                    dim_concept[statement] = "balance",
+                    fact_financials[period_type] = "POINT_IN_TIME",
+                    fact_financials[is_breakdown] = FALSE
+                )
+            RETURN
+                CALCULATE(
+                    SUM(fact_financials[value]),
+                    fact_financials[period_end_date] = LastDataDate,
+                    dim_concept[concept] = "us-gaap_Assets",
+                    dim_concept[statement] = "balance",
+                    fact_financials[is_breakdown] = FALSE
+                )
+            ```
+        formatString: #,0,,,"T"
+        displayFolder: KPIs - Balance Sheet
+
+    // -------------------------------------------------------------------------
+    // KPI 5: Total Equity (Semi-Additive)
+    // -------------------------------------------------------------------------
+    // Same pattern as Total Assets, different concept
+    // us-gaap_StockholdersEquity is the canonical equity concept
+    // -------------------------------------------------------------------------
+    measure 'Total Equity' = ```
+            VAR LastDataDate =
+                CALCULATE(
+                    MAX(fact_financials[period_end_date]),
+                    dim_concept[concept] = "us-gaap_StockholdersEquity",
+                    dim_concept[statement] = "balance",
+                    fact_financials[period_type] = "POINT_IN_TIME",
+                    fact_financials[is_breakdown] = FALSE
+                )
+            RETURN
+                CALCULATE(
+                    SUM(fact_financials[value]),
+                    fact_financials[period_end_date] = LastDataDate,
+                    dim_concept[concept] = "us-gaap_StockholdersEquity",
+                    dim_concept[statement] = "balance",
+                    fact_financials[is_breakdown] = FALSE
+                )
+            ```
+        formatString: #,0,,"bn"
+        displayFolder: KPIs - Balance Sheet
+
+    // -------------------------------------------------------------------------
+    // KPI 6: ROE % (Return on Equity)
+    // -------------------------------------------------------------------------
+    // Simple ratio - automatically updates when underlying measures change
+    // Real banking ROE uses AVG equity; ending equity is the dashboard simplification
+    // -------------------------------------------------------------------------
+    measure 'ROE %' = ```
+            DIVIDE(
+                [Net Income FY],
+                [Total Equity]
+            )
+            ```
+        formatString: 0.0%;-0.0%;--
+        displayFolder: KPIs - Ratios
+
+    // -------------------------------------------------------------------------
+    // KPI 7: Bank Rank by Net Income
+    // -------------------------------------------------------------------------
+    // RANKX iterates over all banks within current filter context
+    // HASONEVALUE guard prevents misleading rank at Total rows
+    // -------------------------------------------------------------------------
+    measure 'Bank Rank by Net Income' = ```
+            IF(
+                HASONEVALUE(dim_company[ticker]),
+                RANKX(
+                    ALL(dim_company[ticker]),
+                    [Net Income FY],
+                    ,
+                    DESC,
+                    Dense
+                )
+            )
+            ```
+        formatString: 0
+        displayFolder: KPIs - Rankings
+
+    // -------------------------------------------------------------------------
+    // KPI 8: Net Income LTM (Last Twelve Months)
+    // -------------------------------------------------------------------------
+    // DATESINPERIOD pattern - trailing 12 months ending at last date in context
+    // For annual-only data this equals Net Income FY for the selected year
+    // Becomes meaningful when quarterly data is included in the model
+    // -------------------------------------------------------------------------
+    measure 'Net Income LTM' = ```
+            CALCULATE(
+                [Net Income FY],
+                DATESINPERIOD(
+                    dim_date[date],
+                    LASTDATE(dim_date[date]),
+                    -12,
+                    MONTH
+                )
+            )
+            ```
+        formatString: #,0,,"bn"
+        displayFolder: KPIs - Time Intelligence
+
+// =============================================================================
+// RELATIONSHIPS (reference - already exist in the model)
+// =============================================================================
+// fact_financials[ticker]            -> dim_company[ticker]     (Many-to-One, Active, Single)
+// fact_financials[concept_key]       -> dim_concept[concept_key] (Many-to-One, Active, Single)
+// fact_financials[period_end_date]   -> dim_date[date]           (Many-to-One, Active, Single)
+//
+// MARK AS DATE TABLE: dim_date with key column 'date'
+// (Required for SAMEPERIODLASTYEAR, DATESINPERIOD, and other time intelligence)
+// =============================================================================
